@@ -1,10 +1,12 @@
 module tokenizer;
 
 import std.range;
+import std.stdio;
+import std.string;
+import std.conv;
+
 import util;
 import handler;
-
-import std.stdio;
 
 public enum TokenType {
 	WHITESPACE, // spaces, tabs, etc
@@ -39,8 +41,8 @@ public enum TokenType {
 public struct Token {
 	TokenType type;
 	string contents;
-	int row;
-	int column;
+	int line;
+	int position;
 }
 
 class Tokenizer {
@@ -89,10 +91,10 @@ class Tokenizer {
 				quoteCount ++;
 			}
 			stringLength ++;
-		} while (source[currentLine].length > stringLength && source[currentLine][stringLength] != '"');
+		} while (source[currentLine].length > stringLength && quoteCount < 2);
 
 		if (quoteCount != 2) {
-			handler.reportError(BuildError(1, currentPosition, currentLine));
+			handler.reportError(BuildError(1, currentLine, currentPosition));
 			handler.abortIfErrors();
 		}
 
@@ -105,15 +107,17 @@ class Tokenizer {
 	private Token tokenizeNumericalLiteral() {
 		int numberLength = 0;
 		int pointCount = 0;
+
 		do {
-			numberLength ++;
 			if (source[currentLine][numberLength] == '.') {
 				pointCount ++;
 			}
+
+			numberLength ++;
 		} while (source[currentLine].length > numberLength && (isDigit(source[currentLine][numberLength]) || source[currentLine][numberLength] == '.'));
 
 		if (pointCount > 1) {
-			handler.reportError(BuildError(2, currentPosition, currentLine));
+			handler.reportError(BuildError(2, currentLine, currentPosition));
 			handler.abortIfErrors();
 		}
 
@@ -122,7 +126,7 @@ class Tokenizer {
 		return token;
 	}
 
-	private void tokenizeOperator() {
+	private Token tokenizeOperator() {
 //		OP_ADD, // +
 //		OP_SUB, // -
 //		OP_MUL, // *
@@ -138,10 +142,18 @@ class Tokenizer {
 //		OP_LOGICAL_AND, // &
 //		OP_LOGICAL_OR, // |
 		auto result = isOperator(source[currentLine][0]);
+
+		if (!result[0]) {
+			string errorSource = to!string(source[currentLine][0]);
+			handler.reportError(BuildError(3, currentLine, currentPosition, errorSource));
+			handler.abortIfErrors();
+		}
+
 		consume();
 
 		// Identify initial type
 		TokenType type;
+		string contents;
 		switch (result[1]) {
 			case '+':
 				type = TokenType.OP_ADD;
@@ -177,48 +189,83 @@ class Tokenizer {
 				type = TokenType.OP_LOGICAL_OR;
 				break;
 			default:
-
+				break;
 		}
 
-		if (source[currentLine][0] == '=') {
+		contents = "" ~ result[1];
+
+		if (source[currentLine].length > 0 && source[currentLine][0] == '=') {
 			// Operator is followed by '='
-//			switch (result[1]) {
-//				case '=':
-//			}
+			switch (result[1]) {
+				case '=':
+					// Double equals
+					type = TokenType.OP_DOUBLE_EQUALS;
+					contents = "==";
+					break;
+				case '>':
+					// Greater or equal to
+					type = TokenType.OP_GREATER_EQ_TO;
+					contents = ">=";
+					break;
+				case '<':
+					// Less or equal to
+					type = TokenType.OP_LESS_EQ_TO;
+					contents = "<=";
+					break;
+				default:
+					handler.reportError(BuildError(3, currentLine, currentPosition, "="));
+					handler.abortIfErrors();
+			}
 		}
+
+		return Token(type, contents, currentLine, currentPosition);
 	}
-	
-////	private Token[] tokenizeLine() {
-////
-////	}
 }
 
 unittest {
+
 	Tokenizer tokenizer = new Tokenizer();
-	string identifierLine = "function";
+	string identifierLine = "function helloWorld";
 	string integerLine = "1024";
 	string floatLine = "3.14159265";
-	string stringLine = """Hello, World!""";
+	string stringLine = "\"Hello, World!\"";
+
+	void incrementTokenizer() {
+		tokenizer.currentLine ++;
+		tokenizer.currentPosition = 0;
+	}
 
 	Token result;
 
 	tokenizer.addSourceLine(identifierLine);
 	result = tokenizer.tokenizeIdentifier();
 	assert(result.type == TokenType.IDENTIFIER);
-	tokenizer.currentLine ++;
+	incrementTokenizer();
 	writeln(result.contents);
 
 	tokenizer.addSourceLine(integerLine);
-	assert(tokenizer.tokenizeNumericalLiteral().type == TokenType.INTEGER_LITERAL);
-	tokenizer.currentLine ++;
+	result = tokenizer.tokenizeNumericalLiteral();
+	assert(result.type == TokenType.INTEGER_LITERAL);
+	incrementTokenizer();
+	writeln(result.contents);
 
 	tokenizer.addSourceLine(floatLine);
-	assert(tokenizer.tokenizeNumericalLiteral().type == TokenType.FLOAT_LITERAL);
-	tokenizer.currentLine ++;
+	result = tokenizer.tokenizeNumericalLiteral();
+	assert(result.type == TokenType.FLOAT_LITERAL);
+	incrementTokenizer();
+	writeln(result.contents);
 
 	tokenizer.addSourceLine(stringLine);
-	assert (tokenizer.tokenizeStringLiteral().type == TokenType.STRING_LITERAL);
-	tokenizer.currentLine ++;
+	result = tokenizer.tokenizeStringLiteral();
+	assert(result.type == TokenType.STRING_LITERAL);
+	incrementTokenizer();
+	writeln(result.contents);
 
-	handler.reportWarning("Unit testing completed", 0, 0);
+	tokenizer.addSourceLine("u");
+	result = tokenizer.tokenizeOperator();
+	assert(result.type == TokenType.OP_GREATER_EQ_TO);
+	incrementTokenizer();
+	writeln(result.contents);
+
+	writeln("Tokenizer: Unit testing completed.");
 }
