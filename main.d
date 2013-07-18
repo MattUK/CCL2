@@ -1,5 +1,6 @@
 /**
- * ========================= CCL2 =========================
+ * ========= Written in the D programming language =========
+ * ========================= CCL2 ==========================
  * An interpreted, dynamically-typed programming language.
  **/
 
@@ -21,6 +22,6 @@ void main(string[] args)
 	 * -v = verbose output
 	 * 
 	 */
-	writeln(
+
 }
 

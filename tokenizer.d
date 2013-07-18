@@ -3,6 +3,8 @@ module tokenizer;
 import std.range;
 import std.stdio;
 import std.string;
+import std.uni;
+import std.conv;
 
 import util;
 import handler;
@@ -94,7 +96,7 @@ class Tokenizer {
 		} while (source[currentLine].length > stringLength && quoteCount < 2);
 
 		if (quoteCount != 2) {
-			handler.reportError(BuildError(1, currentLine, currentPosition));
+			reportError(BuildError(1, currentLine, currentPosition));
 			return Token();
 		}
 
@@ -122,12 +124,12 @@ class Tokenizer {
 		} while (source[currentLine].length > numberLength && (isDigit(source[currentLine][numberLength]) || source[currentLine][numberLength] == '.'));
 
 		if (pointCount > 1) {
-			handler.reportError(BuildError(2, currentLine, currentPosition));
+			reportError(BuildError(2, currentLine, currentPosition));
 			return Token();
 		}
 
 		if (!hasFractionalPart && pointCount > 0) {
-			handler.reportError(BuildError(4, currentLine, currentPosition));
+			reportError(BuildError(4, currentLine, currentPosition));
 			return Token();
 		}
 
@@ -137,25 +139,11 @@ class Tokenizer {
 	}
 
 	private Token tokenizeOperator() {
-//		OP_ADD, // +
-//		OP_SUB, // -
-//		OP_MUL, // *
-//		OP_DIV, // /
-//		OP_MOD, // %
-//		OP_POW, // ^
-//		OP_ASSIGNMENT, // =
-//		OP_GREATER_THAN, // >
-//		OP_LESS_THAN, // <
-//		OP_GREATER_EQ_TO, // >=
-//		OP_LESS_EQ_TO, // <=
-//		OP_DOUBLE_EQUALS, // ==
-//		OP_LOGICAL_AND, // &
-//		OP_LOGICAL_OR, // |
 		auto result = isOperator(source[currentLine][0]);
 
 		if (!result[0]) {
 			string errorSource = "" ~ source[currentLine][0];
-			handler.reportError(BuildError(3, currentLine, currentPosition, errorSource));
+			reportError(BuildError(3, currentLine, currentPosition, errorSource));
 			return Token();
 		}
 
@@ -211,19 +199,22 @@ class Tokenizer {
 					// Double equals
 					type = TokenType.OP_DOUBLE_EQUALS;
 					contents = "==";
+					consume();
 					break;
 				case '>':
 					// Greater or equal to
 					type = TokenType.OP_GREATER_EQ_TO;
 					contents = ">=";
+					consume();
 					break;
 				case '<':
 					// Less or equal to
 					type = TokenType.OP_LESS_EQ_TO;
 					contents = "<=";
+					consume();
 					break;
 				default:
-					handler.reportError(BuildError(3, currentLine, currentPosition, "="));
+					reportError(BuildError(3, currentLine, currentPosition, "="));
 					return Token();
 			}
 		}
@@ -231,8 +222,93 @@ class Tokenizer {
 		return Token(type, contents, currentLine, currentPosition);
 	}
 
-	private void tokenizeCurrentLine() {
+	private Token[] tokenizeCurrentLine() {
+		Token[] line;
+		bool finishedLine = false;
 
+		while (!finishedLine) {
+			Token token;
+
+			if (source[currentLine].length == 0) {
+				finishedLine = true;
+				continue;
+			}
+
+//			WHITESPACE, // spaces, tabs, etc
+//			OP_ADD, // +
+//			OP_SUB, // -
+//			OP_MUL, // *
+//			OP_DIV, // /
+//			OP_MOD, // %
+//			OP_POW, // ^
+//			OP_ASSIGNMENT, // =
+//			OP_GREATER_THAN, // >
+//			OP_LESS_THAN, // <
+//			OP_GREATER_EQ_TO, // >=
+//			OP_LESS_EQ_TO, // <=
+//			OP_DOUBLE_EQUALS, // ==
+//			OP_LOGICAL_AND, // &
+//			OP_LOGICAL_OR, // |
+//			IDENTIFIER, // if, func, myVar, etc
+//			STRING_LITERAL, // "hello, world!"
+//			INTEGER_LITERAL,
+//			FLOAT_LITERAL,
+//			SEPARATOR, // ,
+//			OPEN_BRACKET, // (
+//			CLOSE_BRACKET, // )
+//			OPEN_SQUARE_BRACKET, // [
+//			CLOSE_SQUARE_BRACKET, // ]
+//			OPEN_CURVY_BRACE, // {
+//			CLOSED_CURVY_BRACE, // }
+//			END_STATEMENT // ;
+
+			char c = source[currentLine][0];
+			if (source[currentLine].length > 2 && (c == '/' && source[currentLine][1] == '/')) {
+				finishedLine = true; // Skip line
+				continue;
+			} else if (isDigit(c)) {
+				line ~= tokenizeNumericalLiteral();
+			} else if (isLetter(c) || c == '_') {
+				line ~= tokenizeIdentifier();
+			} else if (c == '"') {
+				line ~= tokenizeStringLiteral();
+			} else if (isOperator(c)[0]) {
+				line ~= tokenizeOperator();
+			} else if (c == ',') {
+				line ~= Token(TokenType.SEPARATOR, ",", currentLine, currentPosition);
+				consume();
+			} else if (c == '(') {
+				line ~= Token(TokenType.OPEN_BRACKET, "(", currentLine, currentPosition);
+				consume();
+			} else if (c == ')') {
+				line ~= Token(TokenType.CLOSE_BRACKET, ")", currentLine, currentPosition);
+				consume();
+			} else if (c == '[') {
+				line ~= Token(TokenType.OPEN_SQUARE_BRACKET, "[", currentLine, currentPosition);
+				consume();
+			} else if (c == ']') {
+				line ~= Token(TokenType.CLOSE_SQUARE_BRACKET, "]", currentLine, currentPosition);
+				consume();
+			} else if (c == '{') {
+				line ~= Token(TokenType.OPEN_CURVY_BRACE, "{", currentLine, currentPosition);
+				consume();
+			} else if (c == '}') {
+				line ~= Token(TokenType.CLOSED_CURVY_BRACE, "}", currentLine, currentPosition);
+				consume();
+			} else if (c == ';') {
+				line ~= Token(TokenType.END_STATEMENT, ";", currentLine, currentPosition);
+				consume();
+			} else if (isWhite(c)) {
+				line ~= Token(TokenType.WHITESPACE, " ", currentLine, currentPosition);
+				consume();
+			} else {
+				reportError(BuildError(3, currentLine, currentPosition));
+			}
+		}
+
+		abortIfErrors();
+
+		return line;
 	}
 
 }
@@ -276,11 +352,18 @@ unittest {
 	incrementTokenizer();
 	writeln(result.contents);
 
-	tokenizer.addSourceLine("u");
+	tokenizer.addSourceLine(">=");
 	result = tokenizer.tokenizeOperator();
 	assert(result.type == TokenType.OP_GREATER_EQ_TO);
 	incrementTokenizer();
 	writeln(result.contents);
+
+	tokenizer.addSourceLine("function HelloWorld {");
+	auto lineResult = tokenizer.tokenizeCurrentLine();
+	foreach (t; lineResult) {
+		string st = to!string(t.type);
+		writeln("Type = " ~ st ~ ", Contents = " ~ t.contents);
+	}
 
 	writeln("Tokenizer: Unit testing completed.");
 }
