@@ -14,9 +14,19 @@ public immutable string[] errorMessages =
 	["%d errors were found during build, check output for details.",
 	 "Unterminated string literal",
 	 "Unexpected '.'",
-	 "Unexpected character '%s',"];
+	 "Unexpected character '%s',",
+	 "Expected digit to follow decimal point"];
 
 private BuildError[] errors;
+private bool[string] flags;
+
+public void setCompileFlag(string flag, bool value) {
+	flags[flag] = value;
+}
+
+public bool getCompileFlag(string flag) {
+	return flags[flag];
+}
 
 public void reportError(BuildError error) {
 	errors ~= error;
@@ -29,7 +39,11 @@ public void reportWarning(string warning, int line, int position) {
 public void abortIfErrors() {
 	if (errors.length > 0) {
 		foreach(err; errors) {
-			writeln(format("Error: " ~ errorMessages[err.errorID] ~ " found at position %d, line %d.", err.values, err.position, err.line));
+			if (err.values.length > 0) {
+				writeln(format("Error: " ~ errorMessages[err.errorID] ~ " found at position %d, line %d.", err.values, err.position, err.line));
+			} else {
+				writeln(format("Error: " ~ errorMessages[err.errorID] ~ " found at position %d, line %d.", err.position, err.line));
+			}
 		}
 
 		writeln(format(errorMessages[0], errors.length));

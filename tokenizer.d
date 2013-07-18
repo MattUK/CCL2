@@ -3,7 +3,6 @@ module tokenizer;
 import std.range;
 import std.stdio;
 import std.string;
-import std.conv;
 
 import util;
 import handler;
@@ -72,6 +71,7 @@ class Tokenizer {
 	// Tokenizes an identifier
 	private Token tokenizeIdentifier() {
 		// Assume validation has already been performed
+
 		int identifierLength = 0; 
 		do {
 			identifierLength ++;
@@ -95,7 +95,7 @@ class Tokenizer {
 
 		if (quoteCount != 2) {
 			handler.reportError(BuildError(1, currentLine, currentPosition));
-			handler.abortIfErrors();
+			return Token();
 		}
 
 		Token token = Token(TokenType.STRING_LITERAL, source[currentLine][0 .. stringLength], currentLine, currentPosition);
@@ -107,10 +107,15 @@ class Tokenizer {
 	private Token tokenizeNumericalLiteral() {
 		int numberLength = 0;
 		int pointCount = 0;
+		bool hasFractionalPart = false;
 
 		do {
 			if (source[currentLine][numberLength] == '.') {
 				pointCount ++;
+			}
+
+			if (pointCount > 0) {
+				hasFractionalPart = true;
 			}
 
 			numberLength ++;
@@ -118,7 +123,12 @@ class Tokenizer {
 
 		if (pointCount > 1) {
 			handler.reportError(BuildError(2, currentLine, currentPosition));
-			handler.abortIfErrors();
+			return Token();
+		}
+
+		if (!hasFractionalPart && pointCount > 0) {
+			handler.reportError(BuildError(4, currentLine, currentPosition));
+			return Token();
 		}
 
 		Token token = Token((pointCount == 1) ? TokenType.FLOAT_LITERAL : TokenType.INTEGER_LITERAL, source[currentLine][0 .. numberLength], currentLine, currentPosition);
@@ -144,9 +154,9 @@ class Tokenizer {
 		auto result = isOperator(source[currentLine][0]);
 
 		if (!result[0]) {
-			string errorSource = to!string(source[currentLine][0]);
+			string errorSource = "" ~ source[currentLine][0];
 			handler.reportError(BuildError(3, currentLine, currentPosition, errorSource));
-			handler.abortIfErrors();
+			return Token();
 		}
 
 		consume();
@@ -214,12 +224,17 @@ class Tokenizer {
 					break;
 				default:
 					handler.reportError(BuildError(3, currentLine, currentPosition, "="));
-					handler.abortIfErrors();
+					return Token();
 			}
 		}
 
 		return Token(type, contents, currentLine, currentPosition);
 	}
+
+	private void tokenizeCurrentLine() {
+
+	}
+
 }
 
 unittest {
