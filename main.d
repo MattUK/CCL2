@@ -22,6 +22,12 @@ void main(string[] args)
 	 * -v = verbose output
 	 * 
 	 */
+	dstring t = "£";
+	writeln(t);
 
+	dchar c = t[0];
+	writeln(c);
+
+	writeln(t[0]);
 }
 

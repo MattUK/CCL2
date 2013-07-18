@@ -41,7 +41,7 @@ public enum TokenType {
 
 public struct Token {
 	TokenType type;
-	string contents;
+	dstring contents;
 	int line;
 	int position;
 }
@@ -50,17 +50,17 @@ class Tokenizer {
 
 	private int currentLine; // The current line being tokenized
 	private int currentPosition; // The current position on the line, used for debugging purposes only
-	private string[] source; // List of lines, stored as a slice
+	private dstring[] source; // List of lines, stored as a slice
 
 	this() {
 		// Constructor code
 	}
 
-	public void addSourceLine(string line) {
+	public void addSourceLine(dstring line) {
 		source ~= line; // Append this line to the source array
 	}
 
-	private bool isIdentifierCharacter(char c) {
+	private bool isIdentifierCharacter(dchar c) {
 		return isAlphaNumeric(c) | (c == '_');
 	}
 
@@ -142,8 +142,7 @@ class Tokenizer {
 		auto result = isOperator(source[currentLine][0]);
 
 		if (!result[0]) {
-			string errorSource = "" ~ source[currentLine][0];
-			reportError(BuildError(3, currentLine, currentPosition, errorSource));
+			reportError(BuildError(3, currentLine, currentPosition, to!dstring(source[currentLine][0])));
 			return Token();
 		}
 
@@ -151,7 +150,7 @@ class Tokenizer {
 
 		// Identify initial type
 		TokenType type;
-		string contents;
+		dstring contents;
 		switch (result[1]) {
 			case '+':
 				type = TokenType.OP_ADD;
@@ -190,7 +189,7 @@ class Tokenizer {
 				break;
 		}
 
-		contents = "" ~ result[1];
+		contents = ""d ~ result[1];
 
 		if (source[currentLine].length > 0 && source[currentLine][0] == '=') {
 			// Operator is followed by '='
@@ -225,6 +224,8 @@ class Tokenizer {
 	private Token[] tokenizeCurrentLine() {
 		Token[] line;
 		bool finishedLine = false;
+
+		writeln(source[currentLine]);
 
 		while (!finishedLine) {
 			Token token;
@@ -262,7 +263,7 @@ class Tokenizer {
 //			CLOSED_CURVY_BRACE, // }
 //			END_STATEMENT // ;
 
-			char c = source[currentLine][0];
+			dchar c = source[currentLine][0];
 			if (source[currentLine].length > 2 && (c == '/' && source[currentLine][1] == '/')) {
 				finishedLine = true; // Skip line
 				continue;
@@ -302,7 +303,8 @@ class Tokenizer {
 				line ~= Token(TokenType.WHITESPACE, " ", currentLine, currentPosition);
 				consume();
 			} else {
-				reportError(BuildError(3, currentLine, currentPosition));
+				reportError(BuildError(3, currentLine, currentPosition, to!dstring(source[currentLine][0])));
+				consume();
 			}
 		}
 
@@ -316,10 +318,10 @@ class Tokenizer {
 unittest {
 
 	Tokenizer tokenizer = new Tokenizer();
-	string identifierLine = "function helloWorld";
-	string integerLine = "1024";
-	string floatLine = "3.14159265";
-	string stringLine = "\"Hello, World!\"";
+	dstring identifierLine = "function helloWorld";
+	dstring integerLine = "1024";
+	dstring floatLine = "3.14159265";
+	dstring stringLine = "\"Hello, World!\"";
 
 	void incrementTokenizer() {
 		tokenizer.currentLine ++;
@@ -358,11 +360,10 @@ unittest {
 	incrementTokenizer();
 	writeln(result.contents);
 
-	tokenizer.addSourceLine("function HelloWorld {");
+	tokenizer.addSourceLine("function _ HelloWorld {+-/& = == > < >= <=");
 	auto lineResult = tokenizer.tokenizeCurrentLine();
 	foreach (t; lineResult) {
-		string st = to!string(t.type);
-		writeln("Type = " ~ st ~ ", Contents = " ~ t.contents);
+		writeln("Type = " ~ (to!dstring(t.type)) ~ ", Contents = " ~ t.contents);
 	}
 
 	writeln("Tokenizer: Unit testing completed.");

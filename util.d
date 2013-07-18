@@ -4,17 +4,17 @@ import std.stdio;
 import std.range;
 import std.typecons;
 
-public char[] charRange(char beginning, char end) {
-	char[] result;
+public dchar[] charRange(dchar beginning, dchar end) {
+	dchar[] result;
 	foreach(c; iota(cast(int)beginning, cast(int)end + 1)) {
-		result ~= cast(char)c;
+		result ~= cast(dchar)c;
 	}
 	return result;
 }
 
-public bool charInRange(char c, char rangeBeginning, char rangeEnd) {
-	char[] range = charRange(rangeBeginning, rangeEnd);
-	foreach (char c1; range) {
+public bool charInRange(dchar c, dchar rangeBeginning, dchar rangeEnd) {
+	dchar[] range = charRange(rangeBeginning, rangeEnd);
+	foreach (c1; range) {
 		if (c == c1) {
 			return true;
 		}
@@ -22,48 +22,33 @@ public bool charInRange(char c, char rangeBeginning, char rangeEnd) {
 	return false;
 }
 
-public bool isLetter(char c) {
+public bool isLetter(dchar c) {
 	if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
 		return true;
 	}
 	return false;
 }
 
-public bool isDigit(char c) {
-	if (c == '0' || charInRange(c, '1', '9')) {
-		return true;
-	}
-	return false;
+public bool isDigit(dchar c) {
+	return std.uni.isNumber(c);
+//	if (c == '0' || charInRange(c, '1', '9')) {
+//		return true;
+//	}
+//	return false;
 }
 
-public bool isAlphaNumeric(char c) {
+public bool isAlphaNumeric(dchar c) {
 	return isLetter(c) | isDigit(c);
 }
 
-public char[] operators = ['+', '-', '*', '/', '%', '^', '=', '>', '<', '&', '|'];
+public dchar[] operators = ['+', '-', '*', '/', '%', '^', '=', '>', '<', '&', '|'];
 
 // Returns true/false, along with the operator being checked
-public auto isOperator(char c) {
-	foreach (o; operators) {
+public auto isOperator(dchar c) {
+	foreach (dchar o; operators) {
 		if (c == o) {
 			return tuple(true, o);
 		}
 	}
-	return tuple(false, ' ');
-}
-
-public string tokenizeNumericalLiteral(string line) {
-	int numberLength = 0;
-	bool floatingPoint = false;
-	do {
-		numberLength ++;
-		if (line[numberLength] == '.') {
-			floatingPoint = true;
-		}
-		writeln(numberLength);
-	} while (isDigit(line[numberLength]) || line[numberLength] == '.');
-
-	string value = line[0 .. numberLength];
-	line = line[numberLength .. $];
-	return "Number = " ~ value ~ ", line = " ~ line;
+	return tuple(false, cast(dchar)' ');
 }

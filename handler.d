@@ -7,10 +7,10 @@ import std.string;
 public struct BuildError {
 	public int errorID;
 	public int line, position;
-	public string values;
+	public dstring values;
 }
 
-public immutable string[] errorMessages =
+public immutable dstring[] errorMessages =
 	["%d errors were found during build, check output for details.",
 	 "Unterminated string literal",
 	 "Unexpected '.'",
@@ -18,13 +18,13 @@ public immutable string[] errorMessages =
 	 "Expected digit to follow decimal point"];
 
 private BuildError[] errors;
-private bool[string] flags;
+private bool[dstring] flags;
 
-public void setCompileFlag(string flag, bool value) {
+public void setCompileFlag(dstring flag, bool value) {
 	flags[flag] = value;
 }
 
-public bool getCompileFlag(string flag) {
+public bool getCompileFlag(dstring flag) {
 	return flags[flag];
 }
 
@@ -32,7 +32,7 @@ public void reportError(BuildError error) {
 	errors ~= error;
 }
 
-public void reportWarning(string warning, int line, int position) {
+public void reportWarning(dstring warning, int line, int position) {
 	writeln(format("Warning: " ~ warning ~ " found at position %d, line %d.", position, line));
 }
 
