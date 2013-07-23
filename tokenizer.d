@@ -17,7 +17,7 @@ public enum TokenType {
 	OP_DIV, // /
 	OP_MOD, // %
 	OP_POW, // ^
-	OP_ASSIGNMENT, // =
+	OP_ASSIGNMENT, // :
 	OP_GREATER_THAN, // >
 	OP_LESS_THAN, // <
 	OP_GREATER_EQ_TO, // >=
@@ -25,6 +25,7 @@ public enum TokenType {
 	OP_DOUBLE_EQUALS, // ==
 	OP_LOGICAL_AND, // &
 	OP_LOGICAL_OR, // |
+	OP_CONCATENATE, // ~
 	IDENTIFIER, // if, func, myVar, etc
 	STRING_LITERAL, // "hello, world!"
 	INTEGER_LITERAL,
@@ -36,7 +37,8 @@ public enum TokenType {
 	CLOSE_SQUARE_BRACKET, // ]
 	OPEN_CURVY_BRACE, // {
 	CLOSED_CURVY_BRACE, // }
-	END_STATEMENT // ;
+	END_STATEMENT, // ;
+	PERIOD, // .
 }
 
 public struct Token {
@@ -170,7 +172,7 @@ class Tokenizer {
 			case '^':
 				type = TokenType.OP_POW;
 				break;
-			case '=':
+			case ':':
 				type = TokenType.OP_ASSIGNMENT;
 				break;
 			case '>':
@@ -184,6 +186,9 @@ class Tokenizer {
 				break;
 			case '|':
 				type = TokenType.OP_LOGICAL_OR;
+				break;
+			case '~':
+				type = TokenType.OP_CONCATENATE;
 				break;
 			default:
 				break;
@@ -218,6 +223,10 @@ class Tokenizer {
 			}
 		}
 
+		if (contents == "=") {
+			reportError(BuildError(3, currentLine, currentPosition, "="));
+		}
+
 		return Token(type, contents, currentLine, currentPosition);
 	}
 
@@ -242,7 +251,7 @@ class Tokenizer {
 //			OP_DIV, // /
 //			OP_MOD, // %
 //			OP_POW, // ^
-//			OP_ASSIGNMENT, // =
+//			OP_ASSIGNMENT, // :
 //			OP_GREATER_THAN, // >
 //			OP_LESS_THAN, // <
 //			OP_GREATER_EQ_TO, // >=
@@ -299,6 +308,9 @@ class Tokenizer {
 			} else if (c == ';') {
 				line ~= Token(TokenType.END_STATEMENT, ";", currentLine, currentPosition);
 				consume();
+			} else if (c == '.') {
+				line ~= Token(TokenType.PERIOD, ".", currentLine, currentPosition);
+				consume();
 			} else if (isWhite(c)) {
 				line ~= Token(TokenType.WHITESPACE, " ", currentLine, currentPosition);
 				consume();
@@ -311,6 +323,22 @@ class Tokenizer {
 		abortIfErrors();
 
 		return line;
+	}
+
+	public Token[][] start() {
+		Token[][] tokens;
+
+		foreach (i; 0 .. currentLine) {
+			currentLine = i;
+
+			tokens ~= tokenizeCurrentLine();
+		}
+
+		abortIfErrors();
+
+		reportStatus("Lexical analysis complete.");
+
+		return tokens;
 	}
 
 }
@@ -360,7 +388,7 @@ unittest {
 	incrementTokenizer();
 	writeln(result.contents);
 
-	tokenizer.addSourceLine("function _ HelloWorld {+-/& = == > < >= <=");
+	tokenizer.addSourceLine("let s1: s[0 to position];");
 	auto lineResult = tokenizer.tokenizeCurrentLine();
 	foreach (t; lineResult) {
 		writeln("Type = " ~ (to!dstring(t.type)) ~ ", Contents = " ~ t.contents);

@@ -46,5 +46,6 @@
     <Compile Include="parser.d" />
     <Compile Include="util.d" />
     <Compile Include="handler.d" />
+    <Compile Include="basic_parser.d" />
   </ItemGroup>
 </Project>

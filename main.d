@@ -18,16 +18,12 @@ import tokenizer;
 
 void main(string[] args)
 {
-	/* ===== Flags =====
-	 * -v = verbose output
-	 * 
-	 */
-	dstring t = "£";
-	writeln(t);
+	string t = "£";
+	writeln(t); // Output: $
 
-	dchar c = t[0];
-	writeln(c);
+	char c = t[0];
+	writeln(c); // Output: ?
 
-	writeln(t[0]);
+	writeln(t[0]); // Output: ?
 }
 

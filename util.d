@@ -41,7 +41,7 @@ public bool isAlphaNumeric(dchar c) {
 	return isLetter(c) | isDigit(c);
 }
 
-public dchar[] operators = ['+', '-', '*', '/', '%', '^', '=', '>', '<', '&', '|'];
+public dchar[] operators = ['+', '-', '*', '/', '%', '^', ':', '=', '>', '<', '&', '|', '~', '.'];
 
 // Returns true/false, along with the operator being checked
 public auto isOperator(dchar c) {

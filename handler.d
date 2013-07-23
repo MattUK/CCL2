@@ -36,6 +36,10 @@ public void reportWarning(dstring warning, int line, int position) {
 	writeln(format("Warning: " ~ warning ~ " found at position %d, line %d.", position, line));
 }
 
+public void reportStatus(dstring status) {
+	writeln("Status: " ~ status);
+}
+
 public void abortIfErrors() {
 	if (errors.length > 0) {
 		foreach(err; errors) {
