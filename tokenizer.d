@@ -328,8 +328,8 @@ class Tokenizer {
 	public Token[][] start() {
 		Token[][] tokens;
 
-		foreach (i; 0 .. currentLine) {
-			currentLine = i;
+		foreach (i; 0 .. source.length) {
+			currentLine = cast(int)i;
 
 			tokens ~= tokenizeCurrentLine();
 		}
@@ -388,7 +388,7 @@ unittest {
 	incrementTokenizer();
 	writeln(result.contents);
 
-	tokenizer.addSourceLine("let s1: s[0 to position];");
+	tokenizer.addSourceLine("hello1.2");
 	auto lineResult = tokenizer.tokenizeCurrentLine();
 	foreach (t; lineResult) {
 		writeln("Type = " ~ (to!dstring(t.type)) ~ ", Contents = " ~ t.contents);
