@@ -12,8 +12,8 @@ import std.conv;
  * 		// The 'to' keyword means from index(1) to index(2) of the array (a.k.a. splicing).
  *		let s1: s[0 to position];
  *
- *		// In this case, no second index is defined: all values from index(1) to the end of the array are specified.
- *		let s2: s[position - 1 to];
+ *		// In this case, no second index is defined: all values from index(1) to the end of the array are used.
+ *		let s2: s[position toend];
  *
  *		// Return acts as a function with the parameters being the return types.
  *		return (s1, s2);
@@ -30,6 +30,10 @@ public class Expression : Statement {
 	public Token operator;
 
 	public Expression followingExpression;
+
+	public void parse(TokenString tokenString) {
+
+	}
 }
 
 public class VariableDeclaration : Statement {
@@ -41,19 +45,42 @@ public class VariableDeclaration : Statement {
 
 	public bool hasArguments;
 	public Expression[] arguments;
-}
 
-public class TypeReference : Statement {
-	public string typeName;
-
-	public bool isArray;
-	public int dimensions;
+	public void parse(TokenString tokenString) {
+		
+	}
 }
 
 public class FunctionDeclaration : Statement {
 	public TupleDeclaration returnType;
 	public string functionName;
 	public ParameterDeclaration parameters;
+
+	public void parse(TokenString tokenString) {
+		
+	}
+}
+
+public class CallStatement : Statement {
+	public string functionName;
+
+	public Expression[] parameters;
+
+	public void parse(TokenString tokenString) {
+		
+	}
+}
+
+public class ArrayAccessor : Statement {
+	public Expression index1;
+
+	public bool isRange;
+	public bool toEnd;
+	public Expression index2;
+
+	public void parse(TokenString tokenString) {
+		
+	}
 }
 
 public class ParameterDeclaration : Statement {
@@ -61,45 +88,53 @@ public class ParameterDeclaration : Statement {
 		public TypeReference type;
 		public string name;
 	}
+	
+	public void parse(TokenString tokenString) {
+		
+	}
 }
 
 public class TupleDeclaration : Statement {
 	public TypeReference[] types;
+	
+	public void parse(TokenString tokenString) {
+		
+	}
 }
 
-public class CallStatement : Statement {
-	public string functionName;
-
-	public Expression[] parameters;
+public class TypeReference : Statement {
+	public string typeName;
+	
+	public bool isArray;
+	public int dimensions;
+	
+	public static TypeReference parse(TokenString tokenString) {
+		return null;
+	}
 }
 
 public class Constant : Statement {
-	public TypeReference type;
-	public string value;
-}
+	public dstring typeName;
+	public dstring value;
 
-public void consume(ref Token[] tokens, int size = 1) {
-	tokens = tokens[size .. $];
-}
-
-public void removeWhitespace(ref Token[] tokens) {
-	bool finished = false;
-	int counter;
-
-	while (!finished) {
-		if (tokens[counter].type == TokenType.WHITESPACE) {
-			// Split the line into two, excluding the whitespace token.
-			Token[] a1 = tokens[0 .. counter];
-			Token[] a2 = tokens[counter + 1 .. $];
-			// Merge the two remainders.
-			tokens = a1 ~ a2;
+	public static Constant parse(TokenString tokenString) {
+		Token t = tokenString.consume();
+		Constant constant = new Constant();
+		if (t.type == TokenType.STRING_LITERAL) {
+			constant.typeName = "string";
+			constant.value = t.contents;
+		} else if (t.type == TokenType.INTEGER_LITERAL) {
+			constant.typeName = "int";
+			constant.value = t.contents;
+		} else if (t.type == TokenType.FLOAT_LITERAL) {
+			constant.typeName = "float";
+			constant.value = t.contents;
+		} else if (t.type == TokenType.BOOL_LITERAL) {
+			constant.typeName = "bool";
+			constant.value = t.contents;
 		}
 
-		counter ++;
-
-		if (counter == tokens.length) {
-			finished = true;
-		}
+		return constant;
 	}
 }
 
@@ -113,17 +148,4 @@ public class Parser {
 //
 //	}
 
-}
-
-unittest {
-	Tokenizer t = new Tokenizer();
-
-	t.addSourceLine("func test()");
-	auto tokens = t.start();
-
-	reportStatus(to!dstring(tokens[0].length));
-
-	removeWhitespace(tokens[0]);
-
-	reportStatus(to!dstring(tokens[0].length));
 }

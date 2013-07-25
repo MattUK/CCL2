@@ -5,6 +5,7 @@ import std.stdio;
 import std.string;
 import std.uni;
 import std.conv;
+import core.vararg;
 
 import util;
 import handler;
@@ -30,6 +31,7 @@ public enum TokenType {
 	STRING_LITERAL, // "hello, world!"
 	INTEGER_LITERAL,
 	FLOAT_LITERAL,
+	BOOL_LITERAL, // true, false
 	SEPARATOR, // ,
 	OPEN_BRACKET, // (
 	CLOSE_BRACKET, // )
@@ -39,6 +41,7 @@ public enum TokenType {
 	CLOSED_CURVY_BRACE, // }
 	END_STATEMENT, // ;
 	PERIOD, // .
+	NONE,
 }
 
 public struct Token {
@@ -48,7 +51,7 @@ public struct Token {
 	int position;
 }
 
-class Tokenizer {
+public class Tokenizer {
 
 	private int currentLine; // The current line being tokenized
 	private int currentPosition; // The current position on the line, used for debugging purposes only
@@ -230,15 +233,13 @@ class Tokenizer {
 		return Token(type, contents, currentLine, currentPosition);
 	}
 
-	private Token[] tokenizeCurrentLine() {
-		Token[] line;
+	private TokenString tokenizeCurrentLine() {
+		TokenString line = new TokenString();
 		bool finishedLine = false;
 
 		writeln(source[currentLine]);
 
 		while (!finishedLine) {
-			Token token;
-
 			if (source[currentLine].length == 0) {
 				finishedLine = true;
 				continue;
@@ -318,6 +319,13 @@ class Tokenizer {
 				reportError(BuildError(3, currentLine, currentPosition, to!dstring(source[currentLine][0])));
 				consume();
 			}
+
+			if (line.getTokens[$ - 1].contents == "true") {
+				line.getTokens[$ - 1].type = TokenType.BOOL_LITERAL;
+			} else if (line.getTokens[$ - 1].contents == "false") {
+				line.getTokens[$ - 1].type = TokenType.BOOL_LITERAL;
+			}
+
 		}
 
 		abortIfErrors();
@@ -325,8 +333,8 @@ class Tokenizer {
 		return line;
 	}
 
-	public Token[][] start() {
-		Token[][] tokens;
+	public TokenString[] start() {
+		TokenString[] tokens;
 
 		foreach (i; 0 .. source.length) {
 			currentLine = cast(int)i;
@@ -339,6 +347,132 @@ class Tokenizer {
 		reportStatus("Lexical analysis complete.");
 
 		return tokens;
+	}
+
+}
+
+public class TokenString {
+	private Token[] tokens;
+	private int line;
+
+	this() {
+		// Constructor
+	}
+
+	public Token[] getTokens() {
+		return tokens;
+	}
+
+	public TokenString append(Token t) {
+		tokens ~= t;
+		return this;
+	}
+
+	public TokenString append(TokenString str) {
+		tokens ~= str.getTokens();
+		return this;
+	}
+
+	public bool empty() {
+		return tokens.length == 0;
+	}
+
+	public TokenString trimLeft() {
+		if (empty()) return this;
+		
+		while (tokens.length > 0 && tokens[0].type == TokenType.WHITESPACE) {
+			tokens = tokens[1 .. $];
+		}
+		return this;
+	}
+	
+	public TokenString trimRight() {
+		if (empty()) return this;
+		
+		while (tokens[$].type == TokenType.WHITESPACE) {
+			tokens.length -= 1;
+		}
+		return this;
+	}
+
+	public TokenString trim() {
+		if (empty()) return this;
+
+		trimLeft();
+		trimRight();
+		return this;
+	}
+
+	public TokenString removeWhitespace() {
+		if (empty()) return this;
+
+		bool finished = false;
+		int counter;
+		
+		while (!finished) {
+			if (tokens[counter].type == TokenType.WHITESPACE) {
+				// Split the line into two, excluding the whitespace token.
+				Token[] a1 = tokens[0 .. counter];
+				Token[] a2 = tokens[counter + 1 .. $];
+				// Merge the two remainders.
+				tokens = a1 ~ a2;
+			}
+			
+			counter ++;
+			
+			if (counter == tokens.length) {
+				finished = true;
+			}
+		}
+
+		return this;
+	}
+
+	public bool match(...) {
+		if (empty()) {
+			return false;
+		}
+		try {
+			for (int i = 0; i < _arguments.length; i++) {
+				if (tokens[i].type != va_arg!(TokenType)(_argptr)) {
+					return false;
+				}
+			}
+		} catch (Exception e) {
+			return false;
+		}
+		return true;
+	}
+	
+	public bool contentMatch(...) {
+		for (int i = 0; i < _arguments.length; i++) {
+			if (toUpper(tokens[i].contents) != toUpper(va_arg!(dstring)(_argptr))) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	public Token consume() {
+		if (tokens.length > 0) {
+			Token t = tokens[0];
+			tokens = tokens[1 .. $];
+			return t;
+		}
+		return Token(TokenType.NONE);
+	}
+	
+	public Token peek() {
+		if (tokens.length > 0) {
+			return tokens[0];
+		}
+		return Token(TokenType.NONE);
+	}
+
+	public void opOpAssign(string op)(Token t) {
+		if (op == "~") {
+			this.tokens ~= t;
+		}
 	}
 
 }
@@ -390,9 +524,15 @@ unittest {
 
 	tokenizer.addSourceLine("hello1.2");
 	auto lineResult = tokenizer.tokenizeCurrentLine();
-	foreach (t; lineResult) {
+	foreach (t; lineResult.getTokens()) {
 		writeln("Type = " ~ (to!dstring(t.type)) ~ ", Contents = " ~ t.contents);
 	}
+
+	TokenString str = new TokenString();
+	str.append(Token(TokenType.STRING_LITERAL, "Hello", 3, 3));
+	str.append(Token(TokenType.OP_ADD, "+", 3, 4));
+
+	writeln(str.match(TokenType.STRING_LITERAL, TokenType.OP_ADD));
 
 	writeln("Tokenizer: Unit testing completed.");
 }
